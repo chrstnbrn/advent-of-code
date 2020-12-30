@@ -13,7 +13,7 @@ let findEntriesWithSum sum count entries =
 let printResult sum count result =
     let product = Seq.fold (( * )) 1
     match result with
-      | Some x -> printfn "Sum of %A = %d. Product of %A = %d" x sum x (x |> product)
+      | Some x -> printfn "Sum of %A = %d. Product of %A = %d" x sum x (product x)
       | _ -> printfn "No %d entries found that have a sum of %d." count sum
 
 [<EntryPoint>]
@@ -24,4 +24,4 @@ let main argv =
     entries |> findEntriesWithSum 2020 2 |> printResult 2020 3
     entries |> findEntriesWithSum 2020 3 |> printResult 2020 3
 
-    0 // return an integer exit code
+    0
