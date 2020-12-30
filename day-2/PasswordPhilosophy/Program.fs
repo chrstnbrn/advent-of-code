@@ -3,13 +3,18 @@ open System.IO
 open FSharp.Text.RegexProvider
 open FSharp.Text.RegexExtensions
 
-type PasswordPolicy = { Letter: char; Min: int; Max: int }
+type PasswordPolicy =
+    { Letter: char
+      First: int
+      Second: int }
 
 type PasswordLine =
     { PasswordPolicy: PasswordPolicy
       Password: string }
 
-type PasswordLineRegex = Regex<"^(?<Min>\d+)-(?<Max>\d+) (?<Letter>\w): (?<Password>.*)$">
+type IsValidPassword = PasswordPolicy -> string -> bool
+
+type PasswordLineRegex = Regex<"^(?<First>\d+)-(?<Second>\d+) (?<Letter>\w): (?<Password>.*)$">
 
 let parseLine (line: string): PasswordLine option =
     PasswordLineRegex().TryTypedMatch(line)
@@ -17,18 +22,39 @@ let parseLine (line: string): PasswordLine option =
         (fun x ->
             { PasswordPolicy =
                   { Letter = x.Letter.AsChar
-                    Min = x.Min.AsInt
-                    Max = x.Max.AsInt }
+                    First = x.First.AsInt
+                    Second = x.Second.AsInt }
               Password = x.Password.Value })
 
-let isValid (policy: PasswordPolicy) (password: string): bool =
-    let letterOccurences =
-        password
-        |> Seq.filter ((=) policy.Letter)
-        |> Seq.length
+let isValidOld: IsValidPassword =
+    fun policy password ->
+        let letterOccurences =
+            password
+            |> Seq.filter ((=) policy.Letter)
+            |> Seq.length
 
-    policy.Min <= letterOccurences
-    && letterOccurences <= policy.Max
+        policy.First <= letterOccurences
+        && letterOccurences <= policy.Second
+
+let xor a b =
+    match a, b with
+    | true, false -> true
+    | false, true -> true
+    | _, _ -> false
+
+let isValidNew: IsValidPassword =
+    fun policy password ->
+        let letterFirst = password.[policy.First - 1]
+        let letterSecond = password.[policy.Second - 1]
+        xor (letterFirst = policy.Letter) (letterSecond = policy.Letter)
+
+let countValidPasswords isValidPassword passwordLines =
+    let isValidLine l =
+        isValidPassword l.PasswordPolicy l.Password
+
+    passwordLines
+    |> Seq.filter isValidLine
+    |> Seq.length
 
 [<EntryPoint>]
 let main argv =
@@ -41,13 +67,20 @@ let main argv =
         |> Seq.map parseLine
         |> Seq.choose id
 
-    let isValidLine l = isValid l.PasswordPolicy l.Password
+    let numberOfValidPasswordsOld =
+        countValidPasswords isValidOld passwordLines
 
-    let numberOfValidPasswords =
-        passwordLines
-        |> Seq.filter isValidLine
-        |> Seq.length
+    let numberOfValidPasswordsNew =
+        countValidPasswords isValidNew passwordLines
 
-    printfn "%d of %d passwords are valid" numberOfValidPasswords (passwordLines |> Seq.length)
+    printfn
+        "%d of %d passwords are valid according to the old interpretation of the policy"
+        numberOfValidPasswordsOld
+        (passwordLines |> Seq.length)
+
+    printfn
+        "%d of %d passwords are valid according to the new interpretation of the policy"
+        numberOfValidPasswordsNew
+        (passwordLines |> Seq.length)
 
     0
