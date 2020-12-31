@@ -23,6 +23,8 @@ let getMissingFields passport =
 let hasRequiredFields passport =
     passport |> getMissingFields |> Seq.isEmpty
 
+let isValidPassport passport = hasRequiredFields passport
+
 [<EntryPoint>]
 let main argv =
     let passportText = File.ReadAllText "./input.txt"
@@ -35,6 +37,12 @@ let main argv =
         |> Seq.filter hasRequiredFields
         |> Seq.length
 
+    let numberOfValidPassports =
+        passports
+        |> Seq.filter isValidPassport
+        |> Seq.length
+
     printfn "%d of %d passports have all required fields" numberOfPassportsWithRequiredFields (Seq.length passports)
+    printfn "%d of %d passports are valid" numberOfValidPassports (Seq.length passports)
 
     0
