@@ -1,29 +1,51 @@
 open System
 open System.IO
 open System.Text.RegularExpressions
+open Passport
+open Option
 
-let requiredFields =
-    [ "byr"
-      "iyr"
-      "eyr"
-      "hgt"
-      "hcl"
-      "ecl"
-      "pid" ]
+let getValue s key =
+    let pattern = "(" + key + "):(?<value>[^\s]+)"
 
-let getFields passport =
-    let pattern = "(?<field>\w+):[^\s]+"
+    let result = Regex.Match(s, pattern)
 
-    Regex.Matches(passport, pattern)
-    |> Seq.map (fun x -> x.Groups.["field"].Value)
+    if result.Success
+       && result.Groups.ContainsKey("value") then
+        Some result.Groups.["value"].Value
+    else
+        None
 
-let getMissingFields passport =
-    requiredFields |> Seq.except (getFields passport)
+let getUnvalidatedPassport (passport: string): UnvalidatedPassport option =
+    option {
+        let getPassportValue = getValue passport
+        let! birthYear = getPassportValue "byr"
+        let! issueYear = getPassportValue "iyr"
+        let! expirationYear = getPassportValue "eyr"
+        let! height = getPassportValue "hgt"
+        let! hairColor = getPassportValue "hcl"
+        let! eyeColor = getPassportValue "ecl"
+        let! passportId = getPassportValue "pid"
+        let countryId = getPassportValue "cid"
+
+        return
+            { BirthYear = birthYear
+              IssueYear = issueYear
+              ExpirationYear = expirationYear
+              Height = height
+              HairColor = hairColor
+              EyeColor = eyeColor
+              PassportId = passportId
+              CountryId = countryId }
+    }
 
 let hasRequiredFields passport =
-    passport |> getMissingFields |> Seq.isEmpty
+    passport |> getUnvalidatedPassport |> (<>) None
 
-let isValidPassport passport = hasRequiredFields passport
+let isValidPassport passport =
+    passport
+    |> getUnvalidatedPassport
+    |> Option.bind Passport.create
+    |> (<>) None
 
 [<EntryPoint>]
 let main argv =
