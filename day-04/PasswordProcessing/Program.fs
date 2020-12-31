@@ -20,7 +20,7 @@ let getFields passport =
 let getMissingFields passport =
     requiredFields |> Seq.except (getFields passport)
 
-let isValidPassport passport =
+let hasRequiredFields passport =
     passport |> getMissingFields |> Seq.isEmpty
 
 [<EntryPoint>]
@@ -30,11 +30,11 @@ let main argv =
     let passports =
         passportText.Split(Environment.NewLine + Environment.NewLine)
 
-    let numberOfValidPassports =
+    let numberOfPassportsWithRequiredFields =
         passports
-        |> Seq.filter isValidPassport
+        |> Seq.filter hasRequiredFields
         |> Seq.length
 
-    printfn "%d of %d passports are valid" numberOfValidPassports (Seq.length passports)
+    printfn "%d of %d passports have all required fields" numberOfPassportsWithRequiredFields (Seq.length passports)
 
     0
