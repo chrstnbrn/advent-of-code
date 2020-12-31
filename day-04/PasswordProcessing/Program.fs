@@ -1,13 +1,40 @@
-// Learn more about F# at http://docs.microsoft.com/dotnet/fsharp
-
 open System
+open System.IO
+open System.Text.RegularExpressions
 
-// Define a function to construct a message to print
-let from whom =
-    sprintf "from %s" whom
+let requiredFields =
+    [ "byr"
+      "iyr"
+      "eyr"
+      "hgt"
+      "hcl"
+      "ecl"
+      "pid" ]
+
+let getFields passport =
+    let pattern = "(?<field>\w+):[^\s]+"
+
+    Regex.Matches(passport, pattern)
+    |> Seq.map (fun x -> x.Groups.["field"].Value)
+
+let getMissingFields passport =
+    requiredFields |> Seq.except (getFields passport)
+
+let isValidPassport passport =
+    passport |> getMissingFields |> Seq.isEmpty
 
 [<EntryPoint>]
 let main argv =
-    let message = from "F#" // Call the function
-    printfn "Hello world %s" message
-    0 // return an integer exit code
+    let passportText = File.ReadAllText "./input.txt"
+
+    let passports =
+        passportText.Split(Environment.NewLine + Environment.NewLine)
+
+    let numberOfValidPassports =
+        passports
+        |> Seq.filter isValidPassport
+        |> Seq.length
+
+    printfn "%d of %d passports are valid" numberOfValidPassports (Seq.length passports)
+
+    0
