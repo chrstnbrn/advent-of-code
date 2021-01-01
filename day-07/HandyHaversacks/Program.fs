@@ -1,10 +1,11 @@
-open System
 open System.IO
 open System.Text.RegularExpressions
 
+type InnerBag = { Color: string; Amount: int }
+
 type Rule =
     { OuterBagColor: string
-      InnerBagColors: string seq }
+      InnerBags: InnerBag seq }
 
 let getOuterBagColor rule =
     let outerBagColorPattern = "^(?<OuterBagColor>\w+ \w+) bags"
@@ -12,44 +13,77 @@ let getOuterBagColor rule =
     Regex.Match(rule, outerBagColorPattern).Groups.["OuterBagColor"]
         .Value
 
-let getInnterBagColors rule =
-    let innerBagColorPattern = "\d+ (?<InnerBagColor>\w+ \w+) bag"
+let getInnerBags rule =
+    let innerBagColorPattern =
+        "(?<Amount>\d+) (?<InnerBagColor>\w+ \w+) bag"
 
     Regex.Matches(rule, innerBagColorPattern)
-    |> Seq.map (fun x -> x.Groups.["InnerBagColor"].Value)
+    |> Seq.map
+        (fun x ->
+            let color = x.Groups.["InnerBagColor"].Value
+            let amount = x.Groups.["Amount"].Value |> int
+            { Color = color; Amount = amount })
 
 let getRule ruleText =
     let outerBagColor = getOuterBagColor ruleText
-    let innerBagColors = getInnterBagColors ruleText
+    let innerBagColors = getInnerBags ruleText
 
     { OuterBagColor = outerBagColor
-      InnerBagColors = innerBagColors }
+      InnerBags = innerBagColors }
 
-let rec getOuterBagsRecursively (rules: Rule seq) (color: string) =
+let isRuleForInnerBag (color: string) (rule: Rule): bool =
+    rule.InnerBags
+    |> Seq.map (fun b -> b.Color)
+    |> Seq.contains color
+
+let rec getOuterBagColorsRecursively (rules: Rule seq) (color: string) =
     let directOuterBags =
         rules
-        |> Seq.filter (fun r -> r.InnerBagColors |> Seq.contains color)
+        |> Seq.filter (isRuleForInnerBag color)
         |> Seq.map (fun r -> r.OuterBagColor)
 
     seq {
         yield! directOuterBags
 
         for bag in directOuterBags do
-            yield! getOuterBagsRecursively rules bag
+            yield! getOuterBagColorsRecursively rules bag
     }
 
-let getOuterBags (ruleTexts: string seq) (color: string): string Set =
+let getOuterBagColors (ruleTexts: string seq) (color: string): string Set =
     let rules = ruleTexts |> Seq.map getRule
-    getOuterBagsRecursively rules color |> Set.ofSeq
 
+    getOuterBagColorsRecursively rules color
+    |> Set.ofSeq
+
+let rec getNumberOfBagsInsideRecursively (rules: Rule seq) (color: string): int =
+    let directInnerBags =
+        rules
+        |> Seq.find (fun r -> r.OuterBagColor = color)
+        |> (fun r -> r.InnerBags)
+
+    directInnerBags
+    |> Seq.sumBy
+        (fun b ->
+            b.Amount
+            + (b.Amount
+               * getNumberOfBagsInsideRecursively rules b.Color))
+
+let getNumberOfBagsInside (ruleTexts: string seq) (color: string): int =
+    let rules = ruleTexts |> Seq.map getRule
+    getNumberOfBagsInsideRecursively rules color
 
 [<EntryPoint>]
 let main argv =
     let rules = "./input.txt" |> File.ReadAllLines
 
-    let numberOfBags =
-        getOuterBags rules "shiny gold" |> Set.count
+    let bagColor = "shiny gold"
 
-    printfn "%d bags can eventually contain a shiny gold bag." numberOfBags
+    let numberOfOuterBagColors =
+        getOuterBagColors rules bagColor |> Set.count
+
+    let numberOfBagsInside = getNumberOfBagsInside rules bagColor
+
+    printfn "%d bags can eventually contain a %s bag." numberOfOuterBagColors bagColor
+    printfn "A single %s bag contains %d bags." bagColor numberOfBagsInside
 
     0 // return an integer exit code

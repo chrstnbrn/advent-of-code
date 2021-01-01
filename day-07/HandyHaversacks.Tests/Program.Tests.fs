@@ -15,9 +15,9 @@ let rules =
       "dotted black bags contain no other bags." ]
 
 [<Test>]
-let getOuterBags () =
+let getOuterBagColors () =
     let color = "shiny gold"
-    let actual = getOuterBags rules color
+    let actual = getOuterBagColors rules color
 
     let expected =
         Set.ofList [ "bright white"
@@ -26,3 +26,9 @@ let getOuterBags () =
                      "light red" ]
 
     Assert.AreEqual(expected, actual)
+
+[<Test>]
+let getNumberOfBagsInside () =
+    let color = "shiny gold"
+    let actual = getNumberOfBagsInside rules color
+    Assert.AreEqual(32, actual)
