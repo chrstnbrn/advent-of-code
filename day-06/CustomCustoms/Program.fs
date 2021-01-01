@@ -1,8 +1,17 @@
 open System
 open System.IO
 
-let countAnswers (answers: string array): int =
-    answers |> String.Concat |> Set.ofSeq |> Set.count
+let countAnswersOfAnyone (answers: string array): int =
+    answers
+    |> Seq.map Set.ofSeq
+    |> Set.unionMany
+    |> Set.count
+
+let countAnswersOfEveryone (answers: string array): int =
+    answers
+    |> Seq.map Set.ofSeq
+    |> Set.intersectMany
+    |> Set.count
 
 [<EntryPoint>]
 let main argv =
@@ -13,8 +22,13 @@ let main argv =
         text.Split(Environment.NewLine + Environment.NewLine)
         |> Seq.map (fun x -> x.Split Environment.NewLine)
 
-    let sumOfYesAnswers = groupAnswers |> Seq.sumBy countAnswers
+    let sumOfYesAnswersOfAnyone =
+        groupAnswers |> Seq.sumBy countAnswersOfAnyone
 
-    printfn "There are %d questions answered with yes" sumOfYesAnswers
+    let sumOfYesAnswersOfEveryone =
+        groupAnswers |> Seq.sumBy countAnswersOfEveryone
+
+    printfn "There are %d questions that anyone within their groups answered with yes" sumOfYesAnswersOfAnyone
+    printfn "There are %d questions that everyone within the groups answered with yes" sumOfYesAnswersOfEveryone
 
     0 // return an integer exit code
