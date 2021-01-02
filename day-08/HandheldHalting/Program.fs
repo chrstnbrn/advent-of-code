@@ -6,7 +6,15 @@ type Operation =
     | Acc
     | Jmp
 
-type Instruction = { Operation: Operation; Argument: int }
+type Instruction =
+    { Index: int
+      Operation: Operation
+      Argument: int }
+
+type Result =
+    { Terminated: bool
+      Accumulator: int
+      Instructions: Instruction list }
 
 let getOperation (s: string): Operation =
     match s with
@@ -15,52 +23,101 @@ let getOperation (s: string): Operation =
     | "jmp" -> Jmp
     | _ -> raise (ArgumentException("Invalid operation: " + s))
 
-let getInstruction (instructionText: string): Instruction =
+let getInstruction (index: int) (instructionText: string): Instruction =
     let parts = instructionText.Split(' ')
     let operation = parts.[0] |> getOperation
     let argument = parts.[1] |> int
 
-    { Operation = operation
+    { Index = index
+      Operation = operation
       Argument = argument }
 
-let getNextIndex (instructions: Instruction list) (currentIndex: int): int =
-    let currentInstruction = instructions.[currentIndex]
+let getInstructions (instructionTexts: string seq): Instruction list =
+    instructionTexts
+    |> Seq.mapi getInstruction
+    |> Seq.toList
 
-    match currentInstruction.Operation with
-    | Jmp -> currentIndex + currentInstruction.Argument
-    | _ -> currentIndex + 1
+let argumentOrDefault (instruction: Instruction) (operation: Operation) (defaultValue: int): int =
+    if instruction.Operation = operation then
+        instruction.Argument
+    else
+        defaultValue
 
-let rec getInstructionsBeforeLoop (instructions: Instruction list) (visitedIndexes: int list): Instruction seq =
-    let currentIndex = visitedIndexes |> Seq.last
-    let nextIndex = getNextIndex instructions currentIndex
+let getNextInstruction (instructions: Instruction list) (currentInstruction: Instruction): Instruction option =
+    let increment =
+        argumentOrDefault currentInstruction Jmp 1
 
-    seq {
-        yield instructions.[currentIndex]
+    instructions
+    |> Seq.tryItem (currentInstruction.Index + increment)
 
-        if (not <| Seq.contains nextIndex visitedIndexes) then
-            yield! getInstructionsBeforeLoop instructions (visitedIndexes @ [ nextIndex ])
-    }
+let run (instructions: Instruction list): Result =
+    let mutable currentInstruction = instructions |> List.tryHead
+    let mutable accumulator = 0
+    let mutable executedInstructions = []
+    let mutable loopDetected = false
+
+    while currentInstruction.IsSome && not loopDetected do
+        let instruction = currentInstruction.Value
+
+        accumulator <- accumulator + argumentOrDefault instruction Acc 0
+
+        executedInstructions <- executedInstructions @ [ instruction ]
+        currentInstruction <- getNextInstruction instructions instruction
+
+        loopDetected <-
+            currentInstruction.IsSome
+            && Seq.contains currentInstruction.Value executedInstructions
+
+    { Terminated = not loopDetected
+      Accumulator = accumulator
+      Instructions = executedInstructions }
+
+let getAccumulator r = r.Accumulator
 
 let getValueBeforeRepeatingInstruction (instructionTexts: string seq): int =
-    let instructions =
-        instructionTexts
-        |> Seq.map getInstruction
-        |> Seq.toList
+    instructionTexts
+    |> getInstructions
+    |> run
+    |> getAccumulator
 
-    let instructionsBeforeLoop =
-        getInstructionsBeforeLoop instructions [ 0 ]
+let changeInstruction (instruction: Instruction): Instruction =
+    match instruction.Operation with
+    | Jmp -> { instruction with Operation = Nop }
+    | Nop -> { instruction with Operation = Jmp }
+    | _ -> instruction
 
-    instructionsBeforeLoop
-    |> Seq.filter (fun x -> x.Operation = Acc)
-    |> Seq.sumBy (fun x -> x.Argument)
+let replaceAtIndex index element =
+    List.mapi (fun i x -> if i = index then element else x)
+
+let changeInstructionAtIndex (instructions: Instruction list) (index: int): Instruction list =
+    let changedInstruction = changeInstruction instructions.[index]
+
+    instructions
+    |> replaceAtIndex index changedInstruction
+
+let getChangedInstructions (instructions: Instruction list): Instruction list seq =
+    instructions
+    |> Seq.filter (fun x -> (x.Operation = Jmp) || (x.Operation = Nop))
+    |> Seq.map (fun x -> changeInstructionAtIndex instructions x.Index)
+
+let getValueAfterTermination (instructionTexts: string seq): int =
+    instructionTexts
+    |> getInstructions
+    |> getChangedInstructions
+    |> Seq.map run
+    |> Seq.find (fun x -> x.Terminated)
+    |> getAccumulator
 
 [<EntryPoint>]
 let main argv =
     let instructions = "./input.txt" |> File.ReadAllLines
 
-    let value =
+    let valueBeforeRepeatingInstruction =
         getValueBeforeRepeatingInstruction instructions
 
-    printfn "The value before any instruction is run a second time is %d" value
+    let valueAfterTermination = getValueAfterTermination instructions
+
+    printfn "The value before any instruction is run a second time is %d" valueBeforeRepeatingInstruction
+    printfn "The value after the program terminates is %d" valueAfterTermination
 
     0 // return an integer exit code

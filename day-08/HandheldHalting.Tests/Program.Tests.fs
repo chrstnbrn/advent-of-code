@@ -20,3 +20,9 @@ let getValueBeforeRepeatingInstruction () =
         getValueBeforeRepeatingInstruction instructions
 
     Assert.AreEqual(5, actual)
+
+[<Test>]
+let getValueAfterTermination () =
+    let actual = getValueAfterTermination instructions
+
+    Assert.AreEqual(8, actual)
