@@ -1,11 +1,47 @@
 module AdapterArray.Tests
 
 open NUnit.Framework
+open Program
 
 [<SetUp>]
-let Setup () =
-    ()
+let Setup () = ()
 
 [<Test>]
-let Test1 () =
-    Assert.Pass()
+let getJoltageDifferences () =
+    let adapters =
+        [| 28
+           33
+           18
+           42
+           31
+           14
+           46
+           20
+           48
+           47
+           24
+           23
+           49
+           45
+           19
+           38
+           39
+           11
+           1
+           32
+           25
+           35
+           8
+           17
+           7
+           9
+           4
+           2
+           34
+           10
+           3 |]
+
+    let actual = getJoltageDifferences adapters
+
+    let expected = Map([ (1, 22); (3, 10) ])
+    Assert.AreEqual(expected, actual)
