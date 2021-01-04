@@ -1,11 +1,21 @@
 module SeatingSystem.Tests
 
 open NUnit.Framework
+open Program
 
-[<SetUp>]
-let Setup () =
-    ()
+let seatLayout =
+    [| "L.LL.LL.LL"
+       "LLLLLLL.LL"
+       "L.L.L..L.."
+       "LLLL.LL.LL"
+       "L.LL.LL.LL"
+       "L.LLLLL.LL"
+       "..L.L....."
+       "LLLLLLLLLL"
+       "L.LLLLLL.L"
+       "L.LLLLL.LL" |]
 
 [<Test>]
-let Test1 () =
-    Assert.Pass()
+let getNumberOfOccupiedSeats () =
+    let actual = getNumberOfOccupiedSeats seatLayout
+    Assert.AreEqual(37, actual)
