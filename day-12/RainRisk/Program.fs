@@ -1,23 +1,25 @@
 open System
 open System.IO
 
-type Distance = int
-
 type Degree =
     | Degree90
     | Degree180
     | Degree270
 
 type Instruction =
-    | North of Distance
-    | South of Distance
-    | East of Distance
-    | West of Distance
+    | North of int
+    | South of int
+    | East of int
+    | West of int
     | Left of Degree
     | Right of Degree
-    | Forward of Distance
+    | Forward of int
 
 type Position = int * int
+
+let add (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+let subtract (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
+let multiply a (x, y) = (a * x, a * y)
 
 let getDegree =
     function
@@ -39,18 +41,6 @@ let getNavigationInstruction (text: string) =
     | 'F' -> Forward value
     | a -> failwithf "Invalid action: %c" a
 
-let rec times n f =
-    if n < 1 then
-        id
-    else
-        f >> times (n - 1) f
-
-let getTurns =
-    function
-    | Degree90 -> 1
-    | Degree180 -> 2
-    | Degree270 -> 3
-
 let calculateManhattanDistance (x1, y1) (x2, y2) =
     let dx: int = x1 - x2
     let dy: int = y1 - y2
@@ -67,20 +57,28 @@ module Part1 =
         { Position: Position
           Direction: Direction }
 
-    let moveY dx state =
+    let moveInDirection d state =
         { state with
-              Position = (fst state.Position, snd state.Position + dx) }
-
-    let moveX dy state =
-        { state with
-              Position = (fst state.Position + dy, snd state.Position) }
+              Position = add state.Position d }
 
     let moveForward d state =
         match state.Direction with
-        | North -> moveY d state
-        | South -> moveY -d state
-        | East -> moveX d state
-        | West -> moveX -d state
+        | North -> state |> moveInDirection (0, d)
+        | South -> state |> moveInDirection (0, -d)
+        | East -> state |> moveInDirection (d, 0)
+        | West -> state |> moveInDirection (-d, 0)
+
+    let rec times n f =
+        if n < 1 then
+            id
+        else
+            f >> times (n - 1) f
+
+    let getTurns =
+        function
+        | Degree90 -> 1
+        | Degree180 -> 2
+        | Degree270 -> 3
 
     let turnRight degree state =
         let turnRightOnce =
@@ -112,15 +110,15 @@ module Part1 =
 
         { state with Direction = newDirection }
 
-    let move (state: ShipState1) instruction =
-        match instruction with
-        | Instruction.North v -> moveY v state
-        | Instruction.South v -> moveY -v state
-        | Instruction.East v -> moveX v state
-        | Instruction.West v -> moveX -v state
-        | Instruction.Left v -> turnLeft v state
-        | Instruction.Right v -> turnRight v state
-        | Instruction.Forward v -> moveForward v state
+    let move =
+        function
+        | Instruction.North v -> moveInDirection (0, v)
+        | Instruction.South v -> moveInDirection (0, -v)
+        | Instruction.East v -> moveInDirection (v, 0)
+        | Instruction.West v -> moveInDirection (-v, 0)
+        | Instruction.Left v -> turnLeft v
+        | Instruction.Right v -> turnRight v
+        | Instruction.Forward v -> moveForward v
 
     let getManhattanDistance (navigationInstructionTexts: string array) =
         let initialState = { Position = (0, 0); Direction = East }
@@ -128,7 +126,7 @@ module Part1 =
         let endState =
             navigationInstructionTexts
             |> Array.map getNavigationInstruction
-            |> Seq.fold move initialState
+            |> Seq.fold (fun state instruction -> move instruction state) initialState
 
         calculateManhattanDistance initialState.Position endState.Position
 
@@ -137,29 +135,50 @@ module Part2 =
         { ShipPosition: Position
           WaypointPosition: Position }
 
-    let moveY dx state =
+    let moveWaypoint d state =
         { state with
-              ShipPosition = (fst state.ShipPosition, snd state.ShipPosition + dx) }
+              WaypointPosition = add state.WaypointPosition d }
 
-    let moveX dy state =
+    let moveShipToWaypoint n state =
+        let (+), (-), (*) = (add, subtract, multiply)
+
+        let d =
+            n * (state.WaypointPosition - state.ShipPosition)
+
+        { ShipPosition = state.ShipPosition + d
+          WaypointPosition = state.WaypointPosition + d }
+
+    let rotateWaypoint degree state =
+        let degreeToRadian d = d * Math.PI / 180.0
+        let sin = degreeToRadian >> Math.Sin >> int
+        let cos = degreeToRadian >> Math.Cos >> int
+
+        let rotateAroundOrigin d (x, y) =
+            (x * cos d - y * sin d, x * sin d + y * cos d)
+
+        let newWaypointPosition =
+            subtract state.WaypointPosition state.ShipPosition
+            |> rotateAroundOrigin degree
+            |> add state.ShipPosition
+
         { state with
-              ShipPosition = (fst state.ShipPosition + dy, snd state.ShipPosition) }
+              WaypointPosition = newWaypointPosition }
 
-    let moveForward d state = state
+    let degreeNumber =
+        function
+        | Degree90 -> 90.0
+        | Degree180 -> 180.0
+        | Degree270 -> 270.0
 
-    let turnRight degree state = state
-
-    let turnLeft degree state = state
-
-    let move state instruction =
-        match instruction with
-        | North v -> moveY v state
-        | South v -> moveY -v state
-        | East v -> moveX v state
-        | West v -> moveX -v state
-        | Left v -> turnLeft v state
-        | Right v -> turnRight v state
-        | Forward v -> moveForward v state
+    let move =
+        function
+        | North v -> moveWaypoint (0, v)
+        | South v -> moveWaypoint (0, -v)
+        | East v -> moveWaypoint (v, 0)
+        | West v -> moveWaypoint (-v, 0)
+        | Left v -> rotateWaypoint (degreeNumber v)
+        | Right v -> rotateWaypoint -(degreeNumber v)
+        | Forward v -> moveShipToWaypoint v
 
     let getManhattanDistance (navigationInstructionTexts: string array) =
         let initialState =
@@ -169,7 +188,7 @@ module Part2 =
         let endState =
             navigationInstructionTexts
             |> Array.map getNavigationInstruction
-            |> Seq.fold move initialState
+            |> Seq.fold (fun state instruction -> move instruction state) initialState
 
         calculateManhattanDistance initialState.ShipPosition endState.ShipPosition
 
