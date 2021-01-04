@@ -1,13 +1,37 @@
-// Learn more about F# at http://docs.microsoft.com/dotnet/fsharp
+open System.IO
 
-open System
+let getSchedule busId = Seq.initInfinite (fun i -> i * busId)
 
-// Define a function to construct a message to print
-let from whom =
-    sprintf "from %s" whom
+let getNextDeparture time =
+    getSchedule >> Seq.find (fun x -> x >= time)
+
+let getAvailableBusIds (busIdsText: string) =
+    busIdsText.Split ','
+    |> Array.filter ((<>) "x")
+    |> Array.map int
+
+let getResult (arrivalTimeText: string) (busIdsText: string): int =
+    let arrivalTime = int arrivalTimeText
+
+    let (busId, departure) =
+        busIdsText
+        |> getAvailableBusIds
+        |> Array.map (fun id -> (id, getNextDeparture arrivalTime id))
+        |> Array.minBy snd
+
+    let waitTime = departure - arrivalTime
+
+    busId * waitTime
 
 [<EntryPoint>]
 let main argv =
-    let message = from "F#" // Call the function
-    printfn "Hello world %s" message
-    0 // return an integer exit code
+    let input = "./input.txt" |> File.ReadAllLines
+
+    let startTime = input.[0]
+    let busIds = input.[1]
+
+    let result = getResult startTime busIds
+
+    printfn "The result is %d" result
+
+    0
