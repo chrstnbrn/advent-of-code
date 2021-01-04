@@ -16,6 +16,11 @@ let seatLayout =
        "L.LLLLL.LL" |]
 
 [<Test>]
-let getNumberOfOccupiedSeats () =
-    let actual = getNumberOfOccupiedSeats seatLayout
+let getNumberOfOccupiedSeats1 () =
+    let actual = getNumberOfOccupiedSeats1 seatLayout
     Assert.AreEqual(37, actual)
+
+[<Test>]
+let getNumberOfOccupiedSeats2 () =
+    let actual = getNumberOfOccupiedSeats2 seatLayout
+    Assert.AreEqual(26, actual)
