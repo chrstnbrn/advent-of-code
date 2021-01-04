@@ -1,11 +1,13 @@
 module RainRisk.Tests
 
 open NUnit.Framework
-
-[<SetUp>]
-let Setup () =
-    ()
+open Program
 
 [<Test>]
-let Test1 () =
-    Assert.Pass()
+let getManhattanDistance () =
+    let navigationInstructions = [| "F10"; "N3"; "F7"; "R90"; "F11" |]
+
+    let actual =
+        getManhattanDistance navigationInstructions
+
+    Assert.AreEqual(25, actual)
