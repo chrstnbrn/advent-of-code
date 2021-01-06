@@ -1,28 +1,30 @@
-let rec getNumbers spokenNumbers previousTurn previousNumber =
+open System.Collections.Generic
+
+let rec getNumbers (spokenNumbers: Dictionary<int, int>) previousTurn previousNumber =
     let secondToLastTurnSpoken =
-        spokenNumbers |> Map.tryFind previousNumber
+        if spokenNumbers.ContainsKey(previousNumber) then
+            Some spokenNumbers.[previousNumber]
+        else
+            None
 
     let number =
         secondToLastTurnSpoken
         |> Option.map (fun n -> previousTurn - n)
         |> Option.defaultValue 0
 
-    let newSpokenNumbers =
-        spokenNumbers
-        |> Map.add previousNumber previousTurn
+    spokenNumbers.[previousNumber] <- previousTurn
 
     seq {
         yield number
-        yield! getNumbers newSpokenNumbers (previousTurn + 1) number
+        yield! getNumbers spokenNumbers (previousTurn + 1) number
     }
 
 let getNthSpokenNumber (n: int) (startingNumbers: int list) =
-    let initialNumbers =
-        Map(
-            startingNumbers
-            |> Seq.take (startingNumbers.Length - 1)
-            |> Seq.mapi (fun i x -> (x, i + 1))
-        )
+    let initialNumbers = Dictionary<int, int>()
+
+    startingNumbers
+    |> Seq.take (startingNumbers.Length - 1)
+    |> Seq.iteri (fun i x -> (initialNumbers.[x] <- (i + 1)))
 
     getNumbers initialNumbers startingNumbers.Length (List.last startingNumbers)
     |> Seq.append startingNumbers
