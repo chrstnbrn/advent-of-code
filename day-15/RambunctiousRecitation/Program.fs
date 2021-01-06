@@ -32,7 +32,12 @@ let getNthSpokenNumber (n: int) (startingNumbers: int list) =
 let main argv =
     let startingNumbers = [ 1; 0; 15; 2; 10; 13 ]
 
-    let number = getNthSpokenNumber 2020 startingNumbers
-    printfn "The 2020th number spoken is %d" number
+    let number2020 = getNthSpokenNumber 2020 startingNumbers
+    printfn "The 2020th number spoken is %d" number2020
+
+    let number30000000 =
+        getNthSpokenNumber 30000000 startingNumbers
+
+    printfn "The 30000000th number spoken is %d" number30000000
 
     0
