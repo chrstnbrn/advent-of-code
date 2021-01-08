@@ -19,3 +19,25 @@ let getTicketScanningErrorRate () =
     let actual = getTicketScanningErrorRate tickets rules
 
     Assert.AreEqual(71, actual)
+
+[<Test>]
+let decodeTicket () =
+    let rules =
+        [| "class: 0-1 or 4-19"
+           "row: 0-5 or 8-19"
+           "seat: 0-13 or 16-19" |]
+
+    let tickets = [| "3,9,18"; "15,1,5"; "5,14,9" |]
+
+    let ticket = "11,12,13"
+
+    let actual = decodeTicket rules tickets ticket
+
+    let expected =
+        Map(
+            [ ("class", 12)
+              ("row", 11)
+              "seat", 13 ]
+        )
+
+    Assert.AreEqual(expected, actual)
