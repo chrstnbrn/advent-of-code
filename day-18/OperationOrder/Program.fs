@@ -1,13 +1,28 @@
-// Learn more about F# at http://docs.microsoft.com/dotnet/fsharp
+open System.IO
+open FParsec
 
-open System
+let evaluate (expression: string): int64 =
+    let opp =
+        OperatorPrecedenceParser<int64, unit, unit>()
 
-// Define a function to construct a message to print
-let from whom =
-    sprintf "from %s" whom
+    opp.TermParser <-
+        (pint64 .>> spaces)
+        <|> between (pstring "(" >>. spaces) (pstring ")" .>> spaces) opp.ExpressionParser
+
+    opp.AddOperator(InfixOperator("+", spaces, 1, Associativity.Left, (+)))
+    opp.AddOperator(InfixOperator("*", spaces, 1, Associativity.Left, (*)))
+
+    match run opp.ExpressionParser expression with
+    | Success (result, _, _) -> result
+    | Failure (error, _, _) -> failwith error
 
 [<EntryPoint>]
 let main argv =
-    let message = from "F#" // Call the function
-    printfn "Hello world %s" message
-    0 // return an integer exit code
+    let expressions = File.ReadAllLines "./input.txt"
+
+    let sumOfExpressionResults =
+        expressions |> Array.sumBy (evaluate >> int64)
+
+    printfn "The of of all expression results is %d" sumOfExpressionResults
+
+    0
