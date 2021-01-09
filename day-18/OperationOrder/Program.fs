@@ -1,7 +1,7 @@
 open System.IO
 open FParsec
 
-let evaluate (expression: string): int64 =
+let evaluateExpression operators expression =
     let opp =
         OperatorPrecedenceParser<int64, unit, unit>()
 
@@ -9,20 +9,38 @@ let evaluate (expression: string): int64 =
         (pint64 .>> spaces)
         <|> between (pstring "(" >>. spaces) (pstring ")" .>> spaces) opp.ExpressionParser
 
-    opp.AddOperator(InfixOperator("+", spaces, 1, Associativity.Left, (+)))
-    opp.AddOperator(InfixOperator("*", spaces, 1, Associativity.Left, (*)))
+    operators |> Seq.iter opp.AddOperator
 
     match run opp.ExpressionParser expression with
     | Success (result, _, _) -> result
     | Failure (error, _, _) -> failwith error
 
+let addition precedence =
+    InfixOperator("+", spaces, precedence, Associativity.Left, (+))
+
+let multiplication precedence =
+    InfixOperator("*", spaces, precedence, Associativity.Left, (*))
+
+let evaluate (expression: string): int64 =
+    expression
+    |> evaluateExpression [ addition 1
+                            multiplication 1 ]
+
+let evaluateWithNewRules (expression: string): int64 =
+    expression
+    |> evaluateExpression [ addition 2
+                            multiplication 1 ]
+
 [<EntryPoint>]
 let main argv =
     let expressions = File.ReadAllLines "./input.txt"
 
-    let sumOfExpressionResults =
-        expressions |> Array.sumBy (evaluate >> int64)
+    let sum = expressions |> Array.sumBy evaluate
+    printfn "The of of all expression results is %d" sum
 
-    printfn "The of of all expression results is %d" sumOfExpressionResults
+    let sumWithNewRules =
+        expressions |> Array.sumBy evaluateWithNewRules
+
+    printfn "The of of all expression results when using the new rules is %d" sumWithNewRules
 
     0

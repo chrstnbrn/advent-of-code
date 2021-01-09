@@ -17,3 +17,18 @@ let evaluateTestCases =
 
 [<TestCaseSource(nameof evaluateTestCases)>]
 let evaluate expression = evaluate expression
+
+let evaluateWithNewRulesTestCases =
+    [ TestCaseData("1 + 2 * 3 + 4 * 5 + 6").Returns(231)
+      TestCaseData("1 + (2 * 3) + (4 * (5 + 6))")
+          .Returns(51)
+      TestCaseData("2 * 3 + (4 * 5)").Returns(46)
+      TestCaseData("5 + (8 * 3 + 9 + 3 * 4 * 3)")
+          .Returns(1445)
+      TestCaseData("5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))")
+          .Returns(669060)
+      TestCaseData("((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2")
+          .Returns(23340) ]
+
+[<TestCaseSource(nameof evaluateWithNewRulesTestCases)>]
+let evaluateWithNewRules expression = evaluateWithNewRules expression
