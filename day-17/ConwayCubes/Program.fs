@@ -1,18 +1,26 @@
-open System
 open System.IO
 
 type CubeState =
     | Active
     | Inactive
 
-let getNeighborCoordinates (x, y, z) =
-    seq {
-        for i in [ x - 1 .. x + 1 ] do
-            for j in [ y - 1 .. y + 1 ] do
-                for k in [ z - 1 .. z + 1 ] do
-                    if (i, j, k) <> (x, y, z) then
-                        yield (i, j, k)
-    }
+let rec getNeighborCoordinatesRec =
+    function
+    | [||] -> List.singleton [||]
+    | xs ->
+        let head = Array.head xs
+        let heads = [ head - 1; head; head + 1 ]
+
+        xs
+        |> Array.tail
+        |> getNeighborCoordinatesRec
+        |> List.allPairs heads
+        |> List.map (fun (h, t) -> Array.append [| h |] t)
+
+let getNeighborCoordinates coordinate =
+    coordinate
+    |> getNeighborCoordinatesRec
+    |> Seq.except [ coordinate ]
     |> Set
 
 let getNextCubeState coordinate activeCoordinates =
@@ -46,17 +54,19 @@ let simulateCycle activeCubes =
     |> Set.union activeCubes
     |> Set.filter (fun c -> getNextCubeState c activeCubes = Active)
 
-let getActiveCubes (initialState: string array) =
+let getActiveCubes (initialState: string array) (dimensions: int) =
     seq {
         for x in [ 0 .. initialState.[0].Length - 1 ] do
             for y in [ 0 .. initialState.Length - 1 ] do
                 let state = initialState.[y].[x] |> toCubeState
-                if (state = Active) then yield (x, y, 0)
+
+                if (state = Active) then
+                    yield Array.append [| x; y |] (Array.zeroCreate (dimensions - 2))
     }
     |> Set
 
-let getNumberOfActiveCubes (cycles: int) (initialState: string array): int =
-    let initiallyActiveCubes = getActiveCubes initialState
+let getNumberOfActiveCubes (initialState: string array) (dimensions: int) (cycles: int): int =
+    let initiallyActiveCubes = getActiveCubes initialState dimensions
 
     let finalState =
         [ 1 .. cycles ]
@@ -68,7 +78,16 @@ let getNumberOfActiveCubes (cycles: int) (initialState: string array): int =
 let main argv =
     let initialState = File.ReadAllLines "./input.txt"
 
-    let numberofActiveCubes = getNumberOfActiveCubes 6 initialState
-    printfn "After the sixth cycle %d cubes are left in the active state" numberofActiveCubes
+    let numberofActiveCubesIn3D = getNumberOfActiveCubes initialState 3 6
+
+    printfn
+        "After the sixth cycle in a 3-dimensional space %d cubes are left in the active state"
+        numberofActiveCubesIn3D
+
+    let numberofActiveCubesIn4D = getNumberOfActiveCubes initialState 4 6
+
+    printfn
+        "After the sixth cycle in a 4-dimensional space %d cubes are left in the active state"
+        numberofActiveCubesIn4D
 
     0
