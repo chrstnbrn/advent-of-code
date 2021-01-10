@@ -40,40 +40,53 @@ let parseRule ruleText =
         { Number = number
           Definition = MatchAnySubRule subRules }
 
-let rec cartesianProduct lists =
-    match lists with
-    | [] -> Seq.singleton []
-    | L :: Ls ->
-        seq {
-            for x in L do
-                for xs in cartesianProduct Ls -> x :: xs
-        }
+let getRulesMap rules =
+    rules
+    |> Array.map (parseRule >> (fun rule -> (rule.Number, rule)))
+    |> Map
 
-let rec getValidMessages rules ruleNumber =
-    let rule = rules |> Map.find ruleNumber
+let surroundWith startString endString s = startString + s + endString
 
-    let getValidMessagesForSubRule =
-        Array.map (getValidMessages rules)
-        >> Array.toList
-        >> cartesianProduct
-        >> Seq.map (String.concat "")
-        >> Seq.toArray
+let rec getRegexPattern rules ruleNumber =
+    let rule = Map.find ruleNumber rules
+
+    let surroundWithBraces = surroundWith "(" ")"
+
+    let getPatternForSubRule =
+        Array.map (getRegexPattern rules)
+        >> String.concat ""
+        >> surroundWithBraces
 
     match rule.Definition with
-    | MatchCharacter ch -> [| ch.ToString() |]
+    | MatchCharacter ch -> ch.ToString()
+
+    | MatchAnySubRule [| [| 42 |]; [| 42; 8 |] |] when rule.Number = 8 ->
+        let patternFor42 = getRegexPattern rules 42
+        patternFor42 + "+"
+
+    | MatchAnySubRule [| [| 42; 31 |]; [| 42; 11; 31 |] |] when rule.Number = 11 ->
+        let patternFor42 = getRegexPattern rules 42
+        let patternFor31 = getRegexPattern rules 31
+        sprintf "(?<n>%s)+(?<-n>%s)+(?(n)(?!))" patternFor42 patternFor31
+
     | MatchAnySubRule subRules ->
         subRules
-        |> Array.collect getValidMessagesForSubRule
+        |> Array.map (getPatternForSubRule)
+        |> String.concat "|"
+        |> surroundWithBraces
 
-let getMessagesMatchingRule ruleTexts messages ruleNumber =
+let getMessagesMatchingRule ruleTexts replaceRules messages ruleNumber =
     let rules =
-        ruleTexts
-        |> Array.map (parseRule >> (fun rule -> (rule.Number, rule)))
-        |> Map
+        replaceRules
+        |> Array.fold (fun map rule -> Map.add rule.Number rule map) (getRulesMap ruleTexts)
 
-    let validMessages = getValidMessages rules ruleNumber
+    let pattern =
+        getRegexPattern rules ruleNumber
+        |> surroundWith "^" "$"
 
-    Set.intersect (Set messages) (Set validMessages)
+    messages
+    |> Seq.filter (fun m -> Regex.IsMatch(m, pattern))
+    |> Set
 
 [<EntryPoint>]
 let main argv =
@@ -86,9 +99,25 @@ let main argv =
     let rules, messages = blocks.[0], blocks.[1]
 
     let numberofMessages =
-        getMessagesMatchingRule rules messages 0
+        getMessagesMatchingRule rules [||] messages 0
         |> Seq.length
 
     printfn "%d messages completely match rule 0" numberofMessages
+
+    let replaceRules =
+        [| { Number = 8
+             Definition =
+                 MatchAnySubRule [| [| 42 |]
+                                    [| 42; 8 |] |] }
+           { Number = 11
+             Definition =
+                 MatchAnySubRule [| [| 42; 31 |]
+                                    [| 42; 11; 31 |] |] } |]
+
+    let numberofMessages =
+        getMessagesMatchingRule rules replaceRules messages 0
+        |> Seq.length
+
+    printfn "After updating rules 8 and 11 %d messages completely match rule 0" numberofMessages
 
     0
