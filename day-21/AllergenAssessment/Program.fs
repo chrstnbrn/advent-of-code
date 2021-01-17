@@ -1,13 +1,85 @@
-// Learn more about F# at http://docs.microsoft.com/dotnet/fsharp
+open System.IO
+open System.Text.RegularExpressions
+open System.Collections.Generic
 
-open System
+type Food =
+    { Ingredients: Ingredient []
+      ListedAllergens: Allergen [] }
 
-// Define a function to construct a message to print
-let from whom =
-    sprintf "from %s" whom
+and Ingredient = Ingredient of string
+
+and Allergen = Allergen of string
+
+let parseFood text =
+    let pattern =
+        "(?<Ingredients>.+) \(contains (?<Allergens>.+)\)"
+
+    let result = Regex.Match(text, pattern)
+
+    let ingredients =
+        result.Groups.["Ingredients"].Value.Split(' ')
+        |> Array.map Ingredient
+
+    let allergens =
+        result.Groups.["Allergens"].Value.Split(", ")
+        |> Array.map Allergen
+
+    { Ingredients = ingredients
+      ListedAllergens = allergens }
+
+let getPossibleIngredientsPerAllergen foods =
+    foods
+    |> Array.collect
+        (fun food ->
+            food.ListedAllergens
+            |> Array.map (fun a -> (a, Set food.Ingredients)))
+    |> Array.groupBy fst
+    |> Array.map (fun (allergen, groups) -> (allergen, groups |> Array.map snd |> Set.intersectMany))
+
+
+let rec getMapRecursively ingredientAllergenMap unknownIngredients =
+    if Array.isEmpty unknownIngredients then
+        ingredientAllergenMap
+    else
+        let foundElements =
+            unknownIngredients
+            |> Array.filter (fun (_, ingredients) -> Seq.length ingredients = 1)
+
+        let newMap =
+            foundElements
+            |> Seq.fold
+                (fun map (allergen, ingredients) -> Map.add (Seq.head ingredients) allergen map)
+                ingredientAllergenMap
+
+        let foundIngredients =
+            foundElements |> Array.map snd |> Set.unionMany
+
+        let newUnknownIngredients =
+            unknownIngredients
+            |> Array.except foundElements
+            |> Array.map (fun (allergen, ingredients) -> (allergen, Set.difference ingredients foundIngredients))
+
+        getMapRecursively newMap newUnknownIngredients
+
+
+let getIngredientAllergenMap =
+    getPossibleIngredientsPerAllergen
+    >> getMapRecursively Map.empty<Ingredient, Allergen>
+
+let countIngredientsWithoutAllergens (foodTexts: string []): int =
+    let foods = foodTexts |> Array.map parseFood
+    let map = getIngredientAllergenMap foods
+
+    foods
+    |> Array.collect (fun f -> f.Ingredients)
+    |> Seq.filter (fun i -> not (Map.containsKey i map))
+    |> Seq.length
 
 [<EntryPoint>]
 let main argv =
-    let message = from "F#" // Call the function
-    printfn "Hello world %s" message
-    0 // return an integer exit code
+    let foods = File.ReadAllLines "./input.txt"
+
+    let ingredientsWithoutAllergens = countIngredientsWithoutAllergens foods
+    printfn "There are %d ingredients without allergens" ingredientsWithoutAllergens
+
+    0

@@ -1,11 +1,16 @@
 module AllergenAssessment.Tests
 
 open NUnit.Framework
-
-[<SetUp>]
-let Setup () =
-    ()
+open Program
 
 [<Test>]
-let Test1 () =
-    Assert.Pass()
+let countIngredientsWithoutAllergens () =
+    let foods =
+        [| "mxmxvkd kfcds sqjhc nhms (contains dairy, fish)"
+           "trh fvjkl sbzzf mxmxvkd (contains dairy)"
+           "sqjhc fvjkl (contains soy)"
+           "sqjhc mxmxvkd sbzzf (contains fish)" |]
+
+    let actual = countIngredientsWithoutAllergens foods
+
+    Assert.AreEqual(5, actual)
