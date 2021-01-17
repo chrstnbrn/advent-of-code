@@ -14,3 +14,16 @@ let countIngredientsWithoutAllergens () =
     let actual = countIngredientsWithoutAllergens foods
 
     Assert.AreEqual(5, actual)
+
+[<Test>]
+let getCanonicalDangerousIngredientList () =
+    let foods =
+        [| "mxmxvkd kfcds sqjhc nhms (contains dairy, fish)"
+           "trh fvjkl sbzzf mxmxvkd (contains dairy)"
+           "sqjhc fvjkl (contains soy)"
+           "sqjhc mxmxvkd sbzzf (contains fish)" |]
+
+    let actual =
+        getCanonicalDangerousIngredientList foods
+
+    Assert.AreEqual("mxmxvkd,sqjhc,fvjkl", actual)

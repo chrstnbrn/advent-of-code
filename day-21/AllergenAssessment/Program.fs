@@ -75,11 +75,25 @@ let countIngredientsWithoutAllergens (foodTexts: string []): int =
     |> Seq.filter (fun i -> not (Map.containsKey i map))
     |> Seq.length
 
+let getCanonicalDangerousIngredientList (foodTexts: string []): string =
+    foodTexts
+    |> Array.map parseFood
+    |> getIngredientAllergenMap
+    |> Map.toArray
+    |> Array.sortBy snd
+    |> Array.map (fun ((Ingredient i), _) -> i)
+    |> String.concat ","
+
 [<EntryPoint>]
 let main argv =
     let foods = File.ReadAllLines "./input.txt"
 
     let ingredientsWithoutAllergens = countIngredientsWithoutAllergens foods
     printfn "There are %d ingredients without allergens" ingredientsWithoutAllergens
+
+    let list =
+        getCanonicalDangerousIngredientList foods
+
+    printfn "The canonical dangerious ingredient list is %s" list
 
     0
