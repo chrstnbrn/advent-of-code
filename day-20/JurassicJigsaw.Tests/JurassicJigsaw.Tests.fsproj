@@ -14,6 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Array2D.Tests.fs" />
+    <Compile Include="Tile.Tests.fs" />
     <Compile Include="Program.Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
