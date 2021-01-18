@@ -11,3 +11,13 @@ let getScore () =
     let actual = getScore player1Deck player2Deck
 
     Assert.AreEqual(306, actual)
+
+[<Test>]
+let getScoreAfterRecursiveCombat () =
+    let player1Deck = [ 9; 2; 6; 3; 1 ]
+    let player2Deck = [ 5; 8; 4; 7; 10 ]
+
+    let actual =
+        getScoreAfterRecursiveCombat player1Deck player2Deck
+
+    Assert.AreEqual(291, actual)
