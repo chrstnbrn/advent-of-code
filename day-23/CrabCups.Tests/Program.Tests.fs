@@ -1,11 +1,11 @@
 module CrabCups.Tests
 
 open NUnit.Framework
+open Program
 
-[<SetUp>]
-let Setup () =
-    ()
+let simulateMovesTestData =
+    [ TestCaseData("389125467", 10).Returns("92658374")
+      TestCaseData("389125467", 100).Returns("67384529") ]
 
-[<Test>]
-let Test1 () =
-    Assert.Pass()
+[<TestCaseSource(nameof simulateMovesTestData)>]
+let simulateMoves labeling moves = simulateMoves labeling moves

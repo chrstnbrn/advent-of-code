@@ -1,13 +1,41 @@
-// Learn more about F# at http://docs.microsoft.com/dotnet/fsharp
+let getDestinationIndex currentCup =
+    Array.indexed
+    >> Array.partition (fun (_, x) -> x < currentCup)
+    >> (fun (smaller, bigger) -> [| smaller; bigger |])
+    >> Array.collect (Array.sortByDescending snd)
+    >> Array.map fst
+    >> Array.head
 
-open System
+let move (cups: int array) =
+    let currentCup = cups.[0]
+    let removedCups = cups.[1..3]
+    let otherCups = cups.[4..]
+    let destinationIndex = getDestinationIndex currentCup otherCups
 
-// Define a function to construct a message to print
-let from whom =
-    sprintf "from %s" whom
+    [ otherCups.[..destinationIndex]
+      removedCups
+      otherCups.[destinationIndex + 1..]
+      [| currentCup |] ]
+    |> Array.concat
+
+let getCups labeling =
+    labeling |> Seq.map (string >> int) |> Seq.toArray
+
+let getCupsClockwiseFrom cup cups =
+    let index = cups |> Array.findIndex ((=) cup)
+    Array.append cups.[index + 1..] cups.[0..index - 1]
+
+let simulateMoves (labeling: string) (moves: int): string =
+    let cups = getCups labeling
+
+    Seq.init moves ignore
+    |> Seq.fold (fun state _ -> move state) cups
+    |> getCupsClockwiseFrom 1
+    |> Array.map string
+    |> String.concat ""
 
 [<EntryPoint>]
 let main argv =
-    let message = from "F#" // Call the function
-    printfn "Hello world %s" message
-    0 // return an integer exit code
+    let result = simulateMoves "871369452" 100
+    printfn "The labels on the cups after cup 1 are %s" result
+    0
