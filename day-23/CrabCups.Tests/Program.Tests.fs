@@ -9,3 +9,10 @@ let simulateMovesTestData =
 
 [<TestCaseSource(nameof simulateMovesTestData)>]
 let simulateMoves labeling moves = simulateMoves labeling moves
+
+let simulateMoves2TestData =
+    [ TestCaseData("389125467", 10_000_000)
+        .Returns(149245887792L) ]
+
+[<TestCaseSource(nameof simulateMoves2TestData)>]
+let simulateMoves2 labeling moves = simulateMoves2 labeling moves
