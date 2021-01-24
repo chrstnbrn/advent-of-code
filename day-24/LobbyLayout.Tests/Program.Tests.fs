@@ -1,11 +1,32 @@
 module LobbyLayout.Tests
 
 open NUnit.Framework
-
-[<SetUp>]
-let Setup () =
-    ()
+open Program
 
 [<Test>]
-let Test1 () =
-    Assert.Pass()
+let getBlackTiles () =
+    let instructions =
+        [| "sesenwnenenewseeswwswswwnenewsewsw"
+           "neeenesenwnwwswnenewnwwsewnenwseswesw"
+           "seswneswswsenwwnwse"
+           "nwnwneseeswswnenewneswwnewseswneseene"
+           "swweswneswnenwsewnwneneseenw"
+           "eesenwseswswnenwswnwnwsewwnwsene"
+           "sewnenenenesenwsewnenwwwse"
+           "wenwwweseeeweswwwnwwe"
+           "wsweesenenewnwwnwsenewsenwwsesesenwne"
+           "neeswseenwwswnwswswnw"
+           "nenwswwsewswnenenewsenwsenwnesesenew"
+           "enewnwewneswsewnwswenweswnenwsenwsw"
+           "sweneswneswneneenwnewenewwneswswnese"
+           "swwesenesewenwneswnwwneseswwne"
+           "enesenwswwswneneswsenwnewswseenwsese"
+           "wnwnesenesenenwwnenwsewesewsesesew"
+           "nenewswnwewswnenesenwnesewesw"
+           "eneswnwswnwsenenwnwnwwseeswneewsenese"
+           "neswnwewnwnwseenwseesewsenwsweewe"
+           "wseweeenwnesenwwwswnew" |]
+
+    let actual = getBlackTiles instructions
+
+    Assert.AreEqual(10, actual)
